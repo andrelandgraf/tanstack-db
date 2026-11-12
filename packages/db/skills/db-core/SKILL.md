@@ -2,8 +2,8 @@
 name: db-core
 description: >
   TanStack DB core concepts: createCollection with queryCollectionOptions,
-  electricCollectionOptions, powerSyncCollectionOptions, rxdbCollectionOptions,
-  trailBaseCollectionOptions, localOnlyCollectionOptions. Live queries via
+  realtimeCollectionOptions (Neon Realtime live SQL queries), other sync
+  adapters, localOnlyCollectionOptions. Live queries via
   query builder (from, where, join, select, groupBy, orderBy, limit). Optimistic
   mutations with draft proxy (collection.insert, collection.update,
   collection.delete). createOptimisticAction, createTransaction,
@@ -50,6 +50,7 @@ For framework-specific hooks:
 ## Quick Decision Tree
 
 - Setting up for the first time? → db-core/collection-setup
+- Syncing the live result of a Postgres query into a collection? → db-core/collection-setup (Neon Realtime adapter)
 - Building queries on collection data? → db-core/live-queries
 - Writing data / handling optimistic state? → db-core/mutations-optimistic
 - Using React hooks? → react-db

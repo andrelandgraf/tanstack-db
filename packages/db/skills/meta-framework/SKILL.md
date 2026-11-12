@@ -333,7 +333,8 @@ See the
 This skill covers the **client-side** read path only (preloading, live queries). For server-side concerns:
 
 - **Electric proxy route** (forwarding shape requests to Electric) — see the [Electric adapter reference](../db-core/collection-setup/references/electric-adapter.md)
-- **Mutation endpoints** (`createServerFn` in TanStack Start, API routes in Next.js/Remix) — implement using your framework's server function pattern. See the Electric adapter reference for the txid handshake that mutations must return.
+- **Neon Realtime** (sealing live queries in `createServerFn`, seeding a collection from a loader through `DbClient`) — see the [Neon Realtime adapter reference](../db-core/collection-setup/references/neon-realtime-adapter.md#tanstack-start-ssr)
+- **Mutation endpoints** (`createServerFn` in TanStack Start, API routes in Next.js/Remix) — implement using your framework's server function pattern. See the Electric or Neon Realtime adapter reference for the txid handshake that mutations must return.
 
 ## Common Mistakes
 

@@ -34,7 +34,8 @@ skills:
     package: 'packages/db'
     description: >
       Creating typed collections with createCollection, queryCollectionOptions,
-      electricCollectionOptions, powerSyncCollectionOptions, rxdbCollectionOptions,
+      realtimeCollectionOptions (Neon Realtime), electricCollectionOptions,
+      powerSyncCollectionOptions, rxdbCollectionOptions,
       trailbaseCollectionOptions, localOnlyCollectionOptions, localStorageCollectionOptions.
       CollectionConfig (getKey, schema, sync, gcTime, autoIndex, syncMode).
       StandardSchema validation with Zod/Valibot/ArkType. Collection lifecycle
@@ -54,6 +55,7 @@ skills:
       - 'TanStack/db:packages/db/src/collection/index.ts'
     subsystems:
       - 'TanStack Query adapter'
+      - 'Neon Realtime adapter'
       - 'ElectricSQL adapter'
       - 'PowerSync adapter'
       - 'RxDB adapter'
@@ -62,6 +64,7 @@ skills:
       - 'localStorage'
     references:
       - 'references/query-adapter.md'
+      - 'references/neon-realtime-adapter.md'
       - 'references/electric-adapter.md'
       - 'references/powersync-adapter.md'
       - 'references/rxdb-adapter.md'

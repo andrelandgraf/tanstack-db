@@ -2,15 +2,16 @@
 name: db-core/collection-setup
 description: >
   Creating typed collections with createCollection. Adapter selection:
-  queryCollectionOptions (REST/TanStack Query), electricCollectionOptions
-  (ElectricSQL real-time sync), powerSyncCollectionOptions (PowerSync SQLite),
-  rxdbCollectionOptions (RxDB), trailBaseCollectionOptions (TrailBase),
+  queryCollectionOptions (REST/TanStack Query), realtimeCollectionOptions
+  (Neon Realtime: live SQL queries on Postgres), electricCollectionOptions,
+  powerSyncCollectionOptions, rxdbCollectionOptions, trailBaseCollectionOptions,
   localOnlyCollectionOptions, localStorageCollectionOptions,
   indexedDBCollectionOptions. CollectionConfig
   options: getKey, schema, sync, gcTime, autoIndex (default off), defaultIndexType,
   syncMode (eager/on-demand, plus progressive for Electric). StandardSchema validation
   with Zod/Valibot/ArkType. Collection lifecycle (idle/loading/ready/error).
-  Adapter-specific sync patterns including Electric txid tracking, Query direct
+  Adapter-specific sync patterns including Neon Realtime sealed queries and
+  txid confirmation, Electric txid tracking, Query direct
   writes, Query initial data and scoped factories, and PowerSync query-driven
   sync with onLoad/onLoadSubset hooks.
 type: sub-skill
@@ -83,6 +84,7 @@ const todoCollection = createCollection(
 | Backend                          | Adapter                         | Package                             |
 | -------------------------------- | ------------------------------- | ----------------------------------- |
 | REST API / TanStack Query        | `queryCollectionOptions`        | `@tanstack/query-db-collection`     |
+| Neon Realtime (live SQL queries) | `realtimeCollectionOptions`     | `@neon/realtime-tanstack`           |
 | ElectricSQL (real-time Postgres) | `electricCollectionOptions`     | `@tanstack/electric-db-collection`  |
 | PowerSync (SQLite offline)       | `powerSyncCollectionOptions`    | `@tanstack/powersync-db-collection` |
 | RxDB (reactive database)         | `rxdbCollectionOptions`         | `@tanstack/rxdb-db-collection`      |
@@ -92,6 +94,13 @@ const todoCollection = createCollection(
 | Browser IndexedDB                | `indexedDBCollectionOptions`    | `@tanstack/db`                      |
 
 If the user specifies a backend (e.g. Electric, PowerSync), use that adapter directly. Only use `localOnlyCollectionOptions` when there is no backend yet — the collection API is uniform, so swapping to a real adapter later only changes the options creator.
+
+For a Postgres app where several clients need the same query results live,
+`realtimeCollectionOptions` syncs any read-only SQL query, joins and aggregates
+included, into a keyed collection. The server seals the query for the
+signed-in user, and writes go through your own server functions. See the
+[Neon Realtime adapter reference](references/neon-realtime-adapter.md); the
+adapter syncs eagerly and has no `syncMode` option.
 
 ## Sync Modes
 
@@ -460,6 +469,7 @@ Source: docs/collections/query-collection.md
 ## References
 
 - [TanStack Query adapter](references/query-adapter.md)
+- [Neon Realtime adapter](references/neon-realtime-adapter.md)
 - [ElectricSQL adapter](references/electric-adapter.md)
 - [PowerSync adapter](references/powersync-adapter.md)
 - [RxDB adapter](references/rxdb-adapter.md)

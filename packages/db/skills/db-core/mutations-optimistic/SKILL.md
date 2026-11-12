@@ -275,6 +275,27 @@ onUpdate: async ({ transaction, collection }) => {
 }
 ```
 
+For a Neon Realtime collection, send the whole transaction in one server call
+and wait for the single txid it returns:
+
+```ts
+onUpdate: async ({ transaction, collection }) => {
+  const { txid } = await updateTodos({
+    data: {
+      userId,
+      batch: transaction.mutations.map((m) => ({
+        id: m.key,
+        changes: m.changes,
+      })),
+    },
+  })
+  if (txid) await collection.utils.awaitTxId(txid, 10_000)
+}
+```
+
+A timeout after the server returned a txid means the write committed and has
+not synced yet. Show it as saved instead of retrying the write.
+
 ---
 
 ## Common Mistakes
@@ -396,3 +417,4 @@ which can discard user work the user thought was saved. Consider:
 - [Transaction API Reference](references/transaction-api.md) -- createTransaction config,
   Transaction object, PendingMutation type, mutation merging rules, strategy types
 - [TanStack DB Mutations Guide](https://tanstack.com/db/latest/docs/guides/mutations)
+- [Neon Realtime adapter: writes](../collection-setup/references/neon-realtime-adapter.md#writes-return-the-txid)
