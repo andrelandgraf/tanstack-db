@@ -2,18 +2,20 @@
 name: meta-framework
 description: >
   Integrating TanStack DB with meta-frameworks (TanStack Start, Next.js,
-  Remix, Nuxt, SvelteKit). Client-side only: SSR is NOT supported — routes
-  must disable SSR. Preloading eager collections in route loaders with
+  Remix, Nuxt, SvelteKit). SSR with a request-scoped DbClient, collection
+  descriptors, initialData and routerWithDbClient (@tanstack/react-db 1.0 RC
+  and later), or client-only routes with ssr: false. Preloading eager collections in route loaders with
   collection.preload(). On-demand Query Collections require preloading the
   live query because source collection preload is a no-op. Multiple collection
   preloading with Promise.all. Framework-specific loader APIs.
 type: composition
 library: db
-library_version: '0.6.17'
+library_version: '1.0.0-rc.1'
 requires:
   - db-core
   - db-core/collection-setup
 sources:
+  - 'TanStack/db:docs/guides/ssr.md'
   - 'TanStack/db:examples/react/todo/src/routes/electric.tsx'
   - 'TanStack/db:examples/react/todo/src/routes/query.tsx'
   - 'TanStack/db:examples/react/todo/src/start.tsx'
@@ -25,7 +27,14 @@ This skill builds on db-core. Read it first for collection setup and query build
 
 ## Setup
 
-TanStack DB collections are **client-side only**. SSR is not implemented. Routes using TanStack DB **must disable SSR**. The setup pattern is:
+Pick the rendering pattern the installed version supports.
+
+With `@tanstack/react-db` 1.0 RC or later, follow docs/guides/ssr.md: create a
+`DbClient` in `getRouter()` (once per server request and once per browser page
+load), seed collections from loaders with `initialData`, and wrap the router
+with `routerWithDbClient` from `@tanstack/react-router-with-db`.
+
+For older versions, or a route that should render only in the browser:
 
 1. Set `ssr: false` on the route
 2. Preload the eager collection, or preload the live query for an on-demand source
@@ -328,7 +337,7 @@ This skill covers the **client-side** read path only (preloading, live queries).
 
 ## Common Mistakes
 
-### CRITICAL Enabling SSR with TanStack DB
+### CRITICAL Server-rendering module-global collections
 
 Wrong:
 
@@ -353,7 +362,9 @@ export const Route = createFileRoute('/todos')({
 })
 ```
 
-TanStack DB collections are client-side only. Without `ssr: false`, the route loader runs on the server where collections cannot sync, causing hangs or errors.
+A module-global collection is shared by every server request. Either render the
+route client-only with `ssr: false`, or create collections through a
+request-scoped `DbClient` and seed them with `initialData` (docs/guides/ssr.md).
 
 Source: examples/react/todo/src/start.tsx
 
