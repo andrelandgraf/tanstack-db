@@ -1,9 +1,10 @@
 ---
 name: db-core
 description: >
-  TanStack DB core concepts: createCollection with queryCollectionOptions,
-  realtimeCollectionOptions (Neon Realtime live SQL queries), other sync
-  adapters, localOnlyCollectionOptions. Live queries via
+  TanStack DB core concepts: createCollection with realtimeCollectionOptions
+  (Neon Realtime live SQL queries), queryCollectionOptions,
+  powerSyncCollectionOptions, rxdbCollectionOptions,
+  trailBaseCollectionOptions, localOnlyCollectionOptions. Live queries via
   query builder (from, where, join, select, groupBy, orderBy, limit). Optimistic
   mutations with draft proxy (collection.insert, collection.update,
   collection.delete). createOptimisticAction, createTransaction,
