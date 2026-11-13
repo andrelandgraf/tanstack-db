@@ -52,16 +52,39 @@ export const TODOS_SQL =
 export const todosQuery = (userId: string) => rawSql<Todo>(TODOS_SQL, [userId])
 ```
 
+`requirePageUser` checks the session and rejects a page loaded for a different
+user (for example after signing in as someone else in another tab):
+
+```ts
+// src/page-user.functions.ts
+import { createMiddleware } from '@tanstack/react-start'
+import { setResponseStatus } from '@tanstack/react-start/server'
+import { z } from 'zod'
+import { requireUser } from './auth.functions'
+
+// Loose, so each server function's own fields reach its validator.
+export const requirePageUser = createMiddleware({ type: 'function' })
+  .middleware([requireUser])
+  .validator(z.looseObject({ userId: z.string() }))
+  .server(({ next, context, data }) => {
+    if (context.user.id !== data.userId) {
+      setResponseStatus(401)
+      throw new Error('UNAUTHENTICATED')
+    }
+    return next({ context: { user: context.user } })
+  })
+```
+
 ```ts
 // src/todos.functions.ts
 import { createServerFn } from '@tanstack/react-start'
-import { requireUser } from './auth.functions'
 import { pool } from './db.server'
+import { requirePageUser } from './page-user.functions'
 import { realtime, todosQuery, TODOS_SQL, type Todo } from './todos.server'
 
 // Rows for SSR plus a sealed live query for exactly the same rows.
 export const loadTodos = createServerFn({ method: 'POST' })
-  .middleware([requireUser])
+  .middleware([requirePageUser])
   .handler(async ({ context }) => {
     const [{ rows }, query] = await Promise.all([
       pool.query<Todo>(TODOS_SQL, [context.user.id]),
@@ -71,7 +94,7 @@ export const loadTodos = createServerFn({ method: 'POST' })
   })
 
 export const refreshTodosQuery = createServerFn({ method: 'POST' })
-  .middleware([requireUser])
+  .middleware([requirePageUser])
   .handler(({ context }) =>
     realtime.seal({ query: todosQuery(context.user.id) }),
   )
@@ -79,9 +102,6 @@ export const refreshTodosQuery = createServerFn({ method: 'POST' })
 
 - The user id in the query comes from the session (`context.user`). The
   `WHERE` clause is the authorization boundary.
-- Also reject when the `userId` the page sends differs from the session user,
-  so a page loaded for another user (another tab signed in) cannot renew or
-  write.
 - A sealed query is a bearer credential. Return it from POST server functions
   and keep pages that embed it out of shared caches.
 - `refreshQuery` must seal the same SQL and parameters as the loader.
@@ -101,6 +121,14 @@ import { collectionOptions } from '@tanstack/react-db'
 import { createTodos, refreshTodosQuery } from './todos.functions'
 import type { Todo } from './todos.server'
 
+// Session gone or switched: reload, dropping this page's DbClient and rows.
+function leaveIfSignedOut(error: unknown): never {
+  if (error instanceof Error && error.message === 'UNAUTHENTICATED') {
+    window.location.assign('/')
+  }
+  throw error
+}
+
 export function todosCollection(userId: string, query: SealedLiveQuery<Todo>) {
   const id = `todos:${userId}`
   return collectionOptions(id, (db) =>
@@ -111,11 +139,12 @@ export function todosCollection(userId: string, query: SealedLiveQuery<Todo>) {
       getKey: (todo) => todo.id,
       // A collection rebuilt after GC would restart from an expired sealed query.
       gcTime: 0,
-      refreshQuery: () => refreshTodosQuery({ data: { userId } }),
+      refreshQuery: () =>
+        refreshTodosQuery({ data: { userId } }).catch(leaveIfSignedOut),
       onInsert: async ({ transaction, collection }) => {
         const { txid } = await createTodos({
           data: { userId, batch: transaction.mutations.map((m) => m.modified) },
-        })
+        }).catch(leaveIfSignedOut)
         if (txid) await collection.utils.awaitTxId(txid, 10_000)
       },
     }),
@@ -127,8 +156,20 @@ export function todosCollection(userId: string, query: SealedLiveQuery<Todo>) {
 
 ```ts
 // src/todos.functions.ts
+// Strips unknown keys, so a row's user_id never comes from the browser.
+const newTodosInput = z.object({
+  userId: z.string(),
+  batch: z.array(
+    z.object({
+      id: z.string().uuid(),
+      title: z.string().min(1),
+      completed: z.boolean(),
+    }),
+  ),
+})
+
 export const createTodos = createServerFn({ method: 'POST' })
-  .middleware([requireUser])
+  .middleware([requirePageUser])
   .validator(newTodosInput)
   .handler(async ({ data: { batch }, context }) => {
     const { rows } = await pool.query<{ txid: string }>(
@@ -158,6 +199,12 @@ import { DbClient } from '@tanstack/react-db'
 import { createRouter } from '@tanstack/react-router'
 import { routerWithDbClient } from '@tanstack/react-router-with-db'
 import { routeTree } from './routeTree.gen'
+
+// routerWithDbClient requires this on the root route:
+// createRootRouteWithContext<RouterContext>()
+export interface RouterContext {
+  readonly dbClient: DbClient
+}
 
 export function getRouter() {
   const realtime = createRealtimeClient({
